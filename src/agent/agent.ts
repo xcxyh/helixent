@@ -118,7 +118,7 @@ export class Agent {
     await this._beforeAgentRun();
     for (let step = 1; step <= this.options.maxSteps; step++) {
       await this._beforeAgentStep(step);
-      const assistantMessage = await this._reason();
+      const assistantMessage = await this._think();
       yield assistantMessage;
 
       const toolUses = this._extractToolUses(assistantMessage);
@@ -133,7 +133,7 @@ export class Agent {
     throw new Error("Maximum number of steps reached");
   }
 
-  private async _reason(): Promise<AssistantMessage> {
+  private async _think(): Promise<AssistantMessage> {
     const modelContext: ModelContext = {
       prompt: this.prompt,
       messages: this.messages,
