@@ -84,7 +84,7 @@ export function ToolUseContentItem({ content }: { content: ToolUseContent }) {
     case "write_file":
       return (
         <Box flexDirection="column">
-          <Text color={currentTheme.colors.secondaryText}>{content.input.description as string}</Text>
+          <Text>{content.input.description as string}</Text>
           <Text color={currentTheme.colors.secondaryText}>└─ {content.input.path as string}</Text>
         </Box>
       );
