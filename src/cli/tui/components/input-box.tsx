@@ -1,6 +1,6 @@
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { memo, useMemo, useState } from "react";
+import { useState } from "react";
 
 import { currentTheme } from "../themes";
 
@@ -15,7 +15,7 @@ const WELCOME_MESSAGES = [
   "Your next idea goes here...",
 ];
 
-function InputBoxImpl({
+export function InputBox({
   onSubmit,
   onAbort,
 }: {
@@ -25,11 +25,6 @@ function InputBoxImpl({
 }) {
   const [firstMessage, setFirstMessage] = useState(true);
   const [text, setText] = useState("");
-  const firstPlaceholder = useMemo(
-    () => WELCOME_MESSAGES[Math.floor(Math.random() * WELCOME_MESSAGES.length)],
-    [],
-  );
-
   const handleChange = (text: string) => {
     setText(text);
   };
@@ -59,7 +54,7 @@ function InputBoxImpl({
       <TextInput
         placeholder={
           firstMessage
-            ? firstPlaceholder
+            ? WELCOME_MESSAGES[Math.floor(Math.random() * WELCOME_MESSAGES.length)]
             : "Input anything to continue. Launch a new command or skill by typing `/`"
         }
         value={text}
@@ -69,5 +64,3 @@ function InputBoxImpl({
     </Box>
   );
 }
-
-export const InputBox = memo(InputBoxImpl);

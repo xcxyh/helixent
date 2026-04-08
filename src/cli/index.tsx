@@ -1,6 +1,8 @@
 import { render } from "ink";
 
 import type { Agent } from "@/agent";
+import { validateIntegrity } from "@/cli/bootstrap";
+import { loadConfig } from "@/cli/config";
 import { createCodingAgent } from "@/coding";
 import { OpenAIModelProvider } from "@/community/openai";
 import { Model } from "@/foundation";
@@ -11,12 +13,18 @@ import { AgentLoopProvider } from "./tui/hooks/use-agent-loop";
 let agent!: Agent;
 
 async function setup() {
+  const config = loadConfig();
+  const entry = config.models[0];
+  if (!entry) {
+    throw new Error("No models configured. Run setup to create `config.yaml`.");
+  }
+
   const provider = new OpenAIModelProvider({
-    baseURL: process.env.BASE_URL ?? "https://ark.cn-beijing.volces.com/api/v3",
-    apiKey: process.env.ARK_API_KEY,
+    baseURL: entry.baseURL,
+    apiKey: entry.APIKey,
   });
 
-  const model = new Model(process.env.ARK_MODEL_NAME ?? "", provider, {
+  const model = new Model(entry.name, provider, {
     max_tokens: 16 * 1024,
     thinking: {
       type: "enabled",
@@ -35,5 +43,6 @@ function main() {
 }
 
 console.info();
+await validateIntegrity();
 await setup();
 main();
