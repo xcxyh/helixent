@@ -1,4 +1,4 @@
-<img width="1024" height="434" alt="image" src="https://github.com/user-attachments/assets/aca4c8e9-5df2-4760-ac38-dde4db788beb" />
+<img width="2048" height="868" alt="image" src="https://github.com/user-attachments/assets/9b4b7b72-45f4-4ae5-8fd5-5fb48d615481" />
 
 # Helixent
 
