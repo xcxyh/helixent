@@ -1,5 +1,5 @@
 import type { Dirent } from "fs";
-import { access, readdir } from "fs/promises";
+import fs, { exists } from "fs/promises";
 import { join } from "path";
 
 import type { AgentMiddleware } from "../agent-middleware";
@@ -10,15 +10,6 @@ import type { SkillFrontmatter } from "./types";
 export function createSkillsMiddleware(
   skillsDirs: string[] = [join(process.cwd(), "skills")],
 ): AgentMiddleware {
-  const fileExists = async (path: string) => {
-    try {
-      await access(path);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   return {
     beforeAgentRun: async () => {
       const skills: SkillFrontmatter[] = [];
@@ -27,7 +18,7 @@ export function createSkillsMiddleware(
       for (const skillsDir of skillsDirs) {
         let folders: Dirent[];
         try {
-          folders = await readdir(skillsDir, { withFileTypes: true });
+          folders = await fs.readdir(skillsDir, { withFileTypes: true });
         } catch {
           // Missing/invalid skills directory; treat as empty.
           continue;
@@ -37,7 +28,7 @@ export function createSkillsMiddleware(
           const skillFilePath = join(skillsDir, folder.name, "SKILL.md");
           if (!folder.isDirectory()) continue;
           if (seenSkillFiles.has(skillFilePath)) continue;
-          if (!(await fileExists(skillFilePath))) continue;
+          if (!(await exists(skillFilePath))) continue;
 
           seenSkillFiles.add(skillFilePath);
           const frontmatter = await readSkillFrontMatter(skillFilePath);
