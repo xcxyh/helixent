@@ -9,6 +9,25 @@
 
 Helixent is a blue rabbit that writes code. It includes an Agent Loop, a Coding Agent, and a nice CLI.
 
+## Index
+
+- [Demo](#demo)
+- [Quick Start (CLI mode)](#quick-start-cli-mode)
+  - [1. Install dependencies](#1-install-dependencies)
+  - [2. Build the binary](#2-build-the-binary)
+  - [3. Symlink into your PATH (macOS)](#3-symlink-into-your-path-macos)
+  - [4. Run the CLI](#4-run-the-cli)
+- [Architecture](#architecture)
+  - [Layer 1: Foundation](#layer-1-foundation)
+  - [Layer 2: Agent Loop](#layer-2-agent-loop)
+  - [Layer 3: Coding Agent](#layer-3-coding-agent)
+  - [Community](#community)
+  - [How to build a coding agent from scratch](#how-to-build-a-coding-agent-from-scratch)
+- [Middleware](#middleware)
+  - [Available hooks](#available-hooks)
+- [Why Bun?](#why-bun)
+- [Roadmap](#roadmap)
+
 ## Demo
 
 https://github.com/user-attachments/assets/4ad89f14-e338-43e4-82ce-91cb83d58be2
