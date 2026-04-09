@@ -6,6 +6,12 @@ export type TodoItemView = {
   status: string;
 };
 
+export type TodoViewState = {
+  latestTodos?: TodoItemView[];
+  toolUses: Map<string, ToolUseContent>;
+  todoSnapshots: Map<string, TodoItemView[]>;
+};
+
 export function snapshotKey(messageIndex: number, contentIndex: number) {
   return `${messageIndex}:${contentIndex}`;
 }
@@ -40,22 +46,42 @@ export function getLatestTodoSnapshotKey(messages: NonSystemMessage[]) {
 }
 
 export function buildTodoSnapshots(messages: NonSystemMessage[]): Map<string, TodoItemView[]> {
+  return buildTodoViewState(messages).todoSnapshots;
+}
+
+export function buildTodoViewState(messages: NonSystemMessage[]): TodoViewState {
   const snapshots = new Map<string, TodoItemView[]>();
+  const toolUses = new Map<string, ToolUseContent>();
   let store: TodoItemView[] = [];
+  let latestTodos: TodoItemView[] | undefined;
 
   for (const [messageIndex, message] of messages.entries()) {
+    if (message.role === "user") {
+      latestTodos = undefined;
+      continue;
+    }
+
     if (message.role !== "assistant") continue;
 
     for (const [contentIndex, content] of message.content.entries()) {
-      if (content.type !== "tool_use" || content.name !== "todo_write") continue;
+      if (content.type !== "tool_use") continue;
+
+      toolUses.set(content.id, content);
+
+      if (content.name !== "todo_write") continue;
 
       const input = toTodoWriteInput(content.input);
       store = applyTodoWrite(store, input);
       snapshots.set(snapshotKey(messageIndex, contentIndex), store);
+      latestTodos = store;
     }
   }
 
-  return snapshots;
+  return {
+    latestTodos,
+    toolUses,
+    todoSnapshots: snapshots,
+  };
 }
 
 export function buildToolUseNames(messages: NonSystemMessage[]): Map<string, string> {
@@ -74,18 +100,7 @@ export function buildToolUseNames(messages: NonSystemMessage[]): Map<string, str
 }
 
 export function buildToolUses(messages: NonSystemMessage[]): Map<string, ToolUseContent> {
-  const toolUses = new Map<string, ToolUseContent>();
-
-  for (const message of messages) {
-    if (message.role !== "assistant") continue;
-
-    for (const content of message.content) {
-      if (content.type !== "tool_use") continue;
-      toolUses.set(content.id, content);
-    }
-  }
-
-  return toolUses;
+  return buildTodoViewState(messages).toolUses;
 }
 
 export function getCurrentTodo(todos?: TodoItemView[]) {
@@ -97,10 +112,7 @@ export function getNextTodo(todos?: TodoItemView[]) {
 }
 
 export function getLatestTodos(messages: NonSystemMessage[]) {
-  const latestKey = getLatestTodoSnapshotKey(messages);
-  if (!latestKey) return undefined;
-
-  return buildTodoSnapshots(messages).get(latestKey);
+  return buildTodoViewState(messages).latestTodos;
 }
 
 function toTodoWriteInput(input: Record<string, unknown>): {

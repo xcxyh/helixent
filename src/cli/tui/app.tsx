@@ -1,13 +1,14 @@
-import { Box } from "ink";
+import { Box, Static } from "ink";
+import { useMemo } from "react";
 
 import { Footer } from "./components/footer";
 import { Header } from "./components/header";
 import { InputBox } from "./components/input-box";
-import { MessageHistory } from "./components/message-history";
+import { MessageHistory, MessageHistoryItem } from "./components/message-history";
 import { StreamingIndicator } from "./components/streaming-indicator";
 import { TodoPanel } from "./components/todo-panel";
 import { useAgentLoop } from "./hooks/use-agent-loop";
-import { getLatestTodos, getNextTodo } from "./todo-view";
+import { buildTodoViewState, getNextTodo } from "./todo-view";
 
 function allDone(todos?: { status: string }[]) {
   return !!todos?.length && todos.every((t) => t.status === "completed" || t.status === "cancelled");
@@ -15,15 +16,34 @@ function allDone(todos?: { status: string }[]) {
 
 export function App() {
   const { streaming, messages, onSubmit, abort } = useAgentLoop();
-  const latestTodos = getLatestTodos(messages);
+  const { latestTodos, todoSnapshots, toolUses } = useMemo(() => buildTodoViewState(messages), [messages]);
+  const activeMessages = streaming ? messages.slice(-1) : [];
+  const staticMessages = streaming ? messages.slice(0, -1) : messages;
+  const showHeader = messages.length === 0;
   const nextTodo = getNextTodo(latestTodos)?.content;
   const hideTodos = !streaming && allDone(latestTodos);
 
   return (
     <Box flexDirection="column" width="100%">
-      <Header />
+      {showHeader && <Header />}
       <Box flexDirection="column" marginTop={1} rowGap={1}>
-        <MessageHistory messages={messages} streaming={streaming} />
+        <Static items={staticMessages}>
+          {(message, index) => (
+            <MessageHistoryItem
+              key={`${message.role}:${index}`}
+              message={message}
+              messageIndex={index}
+              todoSnapshots={todoSnapshots}
+              toolUses={toolUses}
+            />
+          )}
+        </Static>
+        <MessageHistory
+          messages={activeMessages}
+          startIndex={messages.length - activeMessages.length}
+          todoSnapshots={todoSnapshots}
+          toolUses={toolUses}
+        />
         <StreamingIndicator streaming={streaming} nextTodo={nextTodo} />
         {!hideTodos && <TodoPanel todos={latestTodos} />}
         <InputBox onSubmit={onSubmit} onAbort={abort} />
