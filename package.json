@@ -1,8 +1,40 @@
 {
   "name": "helixent",
+  "version": "1.0.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "registry": "https://registry.npmjs.org",
+  "description": "Helixent is a blue rabbit that writes code. It includes an Agent Loop, a Coding Agent, and a nice CLI.",
+  "author": "Henry Lin <henry1943@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/magiccube/helixent"
+  },
+  "homepage": "https://github.com/magiccube/helixent",
+  "bugs": {
+    "url": "https://github.com/magiccube/helixent/issues"
+  },
+  "keywords": [
+    "agent",
+    "agent-loop",
+    "coding-agent",
+    "cli"
+  ],
+  "bin": {
+    "helixent": "dist/bin/helixent"
+  },
+  "files": [
+    "dist/bin/helixent"
+  ],
   "module": "index.ts",
   "type": "module",
   "scripts": {
+    "prepublishOnly": "bun run build:bin",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "hooks:install": "git config core.hooksPath .githooks",
     "build:bin": "rm -rf dist/bin && bun build index.ts --compile --outfile dist/bin/helixent",
     "build:js": "rm -rf dist/js && bun build ./src/index.ts --outdir ./dist/js --splitting --target bun",
     "check": "tsc --noEmit && eslint . --ext .ts",
@@ -26,6 +58,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "commander": "^14.0.3",
     "gray-matter": "^4.0.3",
     "ink": "^6.8.0",
     "ink-markdown": "^1.0.4",

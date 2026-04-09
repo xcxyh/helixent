@@ -20,7 +20,7 @@ export function TodoPanel({ todos }: { todos?: TodoItemView[] }) {
     >
       <Box columnGap={1}>
         <Text color={currentTheme.colors.primary}>Tasks</Text>
-        <Text dimColor>
+        <Text color={currentTheme.colors.dimText}>
           {completedCount} completed
           {inProgressCount > 0 ? `, ${inProgressCount} in progress` : ""}
           {pendingCount > 0 ? `, ${pendingCount} pending` : ""}
@@ -29,7 +29,7 @@ export function TodoPanel({ todos }: { todos?: TodoItemView[] }) {
       {todos.map((todo) => (
         <Box key={todo.id} columnGap={1}>
           <Text color={getTodoColor(todo.status)}>{getTodoIcon(todo.status)}</Text>
-          <Text dimColor={todo.status === "completed"}>{todo.content}</Text>
+          <Text color={todo.status === "completed" ? currentTheme.colors.dimText : undefined}>{todo.content}</Text>
         </Box>
       ))}
     </Box>
@@ -59,6 +59,6 @@ function getTodoColor(status: string) {
     case "cancelled":
       return "red";
     default:
-      return currentTheme.colors.secondaryText;
+      return currentTheme.colors.dimText;
   }
 }

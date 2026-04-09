@@ -1,44 +1,65 @@
 import { Box, Text } from "ink";
+import { memo } from "react";
 
 import type { AssistantMessage, NonSystemMessage, ToolMessage, ToolUseContent, UserMessage } from "@/foundation";
 
 import { currentTheme } from "../themes";
-import {
-  buildTodoSnapshots,
-  buildToolUses,
-  getCurrentTodo,
-  getNextTodo,
-  snapshotKey,
-  type TodoItemView,
-} from "../todo-view";
+import { getCurrentTodo, getNextTodo, snapshotKey, type TodoItemView } from "../todo-view";
 
 import { Markdown } from "./markdown";
 
-export function MessageHistory({ messages }: { messages: NonSystemMessage[]; streaming: boolean }) {
-  const todoSnapshots = buildTodoSnapshots(messages);
-  const toolUses = buildToolUses(messages);
-
+export const MessageHistory = memo(function MessageHistory({
+  messages,
+  startIndex = 0,
+  todoSnapshots,
+  toolUses,
+}: {
+  messages: NonSystemMessage[];
+  startIndex?: number;
+  todoSnapshots: Map<string, TodoItemView[]>;
+  toolUses: Map<string, ToolUseContent>;
+}) {
   return (
-    <Box flexDirection="column" rowGap={1} overflowY="visible" width="100%">
+    <Box flexDirection="column" rowGap={1} width="100%">
       {messages.map((message, index) => {
-        switch (message.role) {
-          case "user":
-            return <UserMessageItem key={index} message={message} />;
-          case "assistant":
-            return (
-              <AssistantMessageItem key={index} message={message} todoSnapshots={todoSnapshots} messageIndex={index} />
-            );
-          case "tool":
-            return <ToolMessageItem key={index} message={message} toolUses={toolUses} />;
-          default:
-            return null;
-        }
+        return (
+          <MessageHistoryItem
+            key={getMessageKey(message, index)}
+            message={message}
+            messageIndex={startIndex + index}
+            todoSnapshots={todoSnapshots}
+            toolUses={toolUses}
+          />
+        );
       })}
     </Box>
   );
-}
+});
 
-export function UserMessageItem({ message }: { message: UserMessage }) {
+export const MessageHistoryItem = memo(function MessageHistoryItem({
+  message,
+  messageIndex,
+  todoSnapshots,
+  toolUses,
+}: {
+  message: NonSystemMessage;
+  messageIndex: number;
+  todoSnapshots: Map<string, TodoItemView[]>;
+  toolUses: Map<string, ToolUseContent>;
+}) {
+  switch (message.role) {
+    case "user":
+      return <UserMessageItem message={message} />;
+    case "assistant":
+      return <AssistantMessageItem message={message} todoSnapshots={todoSnapshots} messageIndex={messageIndex} />;
+    case "tool":
+      return <ToolMessageItem message={message} toolUses={toolUses} />;
+    default:
+      return null;
+  }
+});
+
+const UserMessageItem = memo(function UserMessageItem({ message }: { message: UserMessage }) {
   return (
     <Box columnGap={1} width="100%" backgroundColor={currentTheme.colors.secondaryBackground}>
       <Text color="white" bold>
@@ -49,9 +70,9 @@ export function UserMessageItem({ message }: { message: UserMessage }) {
       </Text>
     </Box>
   );
-}
+});
 
-export function AssistantMessageItem({
+const AssistantMessageItem = memo(function AssistantMessageItem({
   message,
   todoSnapshots,
   messageIndex,
@@ -79,7 +100,7 @@ export function AssistantMessageItem({
           case "tool_use":
             return (
               <Box key={i} columnGap={1}>
-                <Text dimColor>⏺</Text>
+                <Text color={currentTheme.colors.dimText}>⏺</Text>
                 <Box flexDirection="column">
                   <ToolUseContentItem content={content} todos={todoSnapshots.get(snapshotKey(messageIndex, i))} />
                 </Box>
@@ -91,15 +112,21 @@ export function AssistantMessageItem({
       })}
     </Box>
   );
-}
+});
 
-export function ToolUseContentItem({ content, todos }: { content: ToolUseContent; todos?: TodoItemView[] }) {
+const ToolUseContentItem = memo(function ToolUseContentItem({
+  content,
+  todos,
+}: {
+  content: ToolUseContent;
+  todos?: TodoItemView[];
+}) {
   switch (content.name) {
     case "bash":
       return (
         <Box flexDirection="column">
           <Text>{content.input.description as string}</Text>
-          <Text dimColor>└─ {content.input.command as string}</Text>
+          <Text color={currentTheme.colors.dimText}>└─ {content.input.command as string}</Text>
         </Box>
       );
     case "str_replace":
@@ -108,7 +135,7 @@ export function ToolUseContentItem({ content, todos }: { content: ToolUseContent
       return (
         <Box flexDirection="column">
           <Text>{content.input.description as string}</Text>
-          <Text dimColor>└─ {content.input.path as string}</Text>
+          <Text color={currentTheme.colors.dimText}>└─ {content.input.path as string}</Text>
         </Box>
       );
     case "todo_write": {
@@ -123,7 +150,7 @@ export function ToolUseContentItem({ content, todos }: { content: ToolUseContent
         <Box flexDirection="column">
           <Text>{summaryTodo ? `Working on: ${summaryTodo.content}` : "Todo list complete"}</Text>
           {(completedCount > 0 || pendingCount > 0) && (
-            <Text dimColor>
+            <Text color={currentTheme.colors.dimText}>
               └─ {completedCount} completed{pendingCount > 0 ? `, ${pendingCount} pending` : ""}
             </Text>
           )}
@@ -134,13 +161,13 @@ export function ToolUseContentItem({ content, todos }: { content: ToolUseContent
       return (
         <Box flexDirection="column">
           <Text>Tool call</Text>
-          <Text dimColor>└─ {content.name}</Text>
+          <Text color={currentTheme.colors.dimText}>└─ {content.name}</Text>
         </Box>
       );
   }
-}
+});
 
-export function ToolMessageItem({
+const ToolMessageItem = memo(function ToolMessageItem({
   message,
   toolUses,
 }: {
@@ -158,14 +185,29 @@ export function ToolMessageItem({
     <Box flexDirection="column" width="100%">
       {visibleContent.map((content, i) => (
         <Box key={i} columnGap={1}>
-          <Text dimColor>✓</Text>
+          <Text color={currentTheme.colors.dimText}>✓</Text>
           <Box flexDirection="column">
-            <Text dimColor>{content.content}</Text>
+            <Text color={currentTheme.colors.dimText}>{content.content}</Text>
           </Box>
         </Box>
       ))}
     </Box>
   );
+});
+
+function getMessageKey(message: NonSystemMessage, index: number) {
+  switch (message.role) {
+    case "user":
+      return `user:${index}:${message.content.map((content) => (content.type === "text" ? content.text : "image")).join("|")}`;
+    case "assistant":
+      return `assistant:${index}:${message.content
+        .map((content) => (content.type === "tool_use" ? content.id : content.type))
+        .join("|")}`;
+    case "tool":
+      return `tool:${index}:${message.content.map((content) => content.tool_use_id).join("|")}`;
+    default:
+      return `${index}`;
+  }
 }
 
 function summarizeToolResult(content: string, toolUse?: ToolUseContent) {

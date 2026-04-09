@@ -4,24 +4,14 @@ import { parse as yamlParse } from "yaml";
 
 import {
   ensureHelixentHomeDirectory,
+  ensureHelixentHomeEnv,
   getConfigFilePath,
-  getDefaultHelixentHome,
   isHelixentSetupComplete,
   loadConfig,
   saveConfig,
 } from "@/cli/config";
 
 import { runFirstRunWizard } from "./first-run-wizard";
-
-function ensureHelixentHomeEnv(): void {
-  if (!process.env.HELIXENT_HOME?.trim()) {
-    const p = getDefaultHelixentHome();
-    process.env.HELIXENT_HOME = p;
-    if (typeof Bun !== "undefined") {
-      Bun.env.HELIXENT_HOME = p;
-    }
-  }
-}
 
 export async function validateIntegrity(): Promise<void> {
   ensureHelixentHomeEnv();

@@ -124,6 +124,13 @@ export class Agent {
   }
 
   /**
+   * Clears all messages from the agent's internal context.
+   */
+  clearMessages() {
+    this._context.messages.length = 0;
+  }
+
+  /**
    * Runs the agent.
    * @param message - The message to send to the agent.
    * @returns The response from the agent. If the agent ran successfully, the response will be the final response from the agent. If the agent stopped running due to a maximum number of steps being reached, the response will be the last response from the agent.
@@ -191,7 +198,10 @@ export class Agent {
       try {
         const tool = this.tools?.find((t) => t.name === toolUse.name);
         if (!tool) throw new Error(`Tool ${toolUse.name} not found`);
-        await this._beforeToolUse(toolUse);
+        const beforeResult = await this._beforeToolUse(toolUse);
+        if (beforeResult.skip) {
+          return { index, toolUseId: toolUse.id, result: beforeResult.result };
+        }
         const result = await tool.invoke(toolUse.input, signal);
         await this._afterToolUse(toolUse, result);
         return { index, toolUseId: toolUse.id, result };
@@ -203,12 +213,12 @@ export class Agent {
 
     const abortPromise = signal
       ? new Promise<never>((_, reject) => {
-          if (signal.aborted) {
-            reject(signal.reason);
-            return;
-          }
-          signal.addEventListener("abort", () => reject(signal.reason), { once: true });
-        })
+        if (signal.aborted) {
+          reject(signal.reason);
+          return;
+        }
+        signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+      })
       : null;
 
     const remaining = new Set(pending.map((_, i) => i));
@@ -298,14 +308,18 @@ export class Agent {
     }
   }
 
-  private async _beforeToolUse(toolUse: ToolUseContent) {
+  private async _beforeToolUse(toolUse: ToolUseContent): Promise<{ skip: boolean; result?: unknown }> {
     for (const middleware of this.middlewares) {
       if (!middleware.beforeToolUse) continue;
       const result = await middleware.beforeToolUse({ agentContext: this._context, toolUse });
+      if (result && typeof result === "object" && "__skip" in result) {
+        return { skip: true, result: result.result };
+      }
       if (result) {
         Object.assign(this._context, result);
       }
     }
+    return { skip: false };
   }
 
   private async _afterToolUse(toolUse: ToolUseContent, toolResult: unknown) {
