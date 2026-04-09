@@ -1,7 +1,9 @@
-<img width="2048" height="868" alt="image" src="https://github.com/user-attachments/assets/9b4b7b72-45f4-4ae5-8fd5-5fb48d615481" />
+![](https://github.com/user-attachments/assets/9b4b7b72-45f4-4ae5-8fd5-5fb48d615481)
 
 # Helixent
 
+[![npm](https://img.shields.io/npm/v/helixent?label=npm&logo=npm&color=CB3837)](https://www.npmjs.com/package/helixent)
+[![Check](https://github.com/magiccube/helixent/actions/workflows/check.yml/badge.svg?branch=main)](https://github.com/magiccube/helixent/actions/workflows/check.yml)
 [![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=ffffff)](https://bun.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=ffffff)](https://www.typescriptlang.org)
 [![Ink](https://img.shields.io/badge/Ink-000000?logo=npm&logoColor=ffffff)](https://github.com/vadimdemedes/ink)
@@ -13,17 +15,150 @@ Helixent is a blue rabbit that writes code. It includes an Agent Loop, a Coding 
 
 https://github.com/user-attachments/assets/4ad89f14-e338-43e4-82ce-91cb83d58be2
 
-## Quick Start (CLI mode)
+## Index
+
+- [Get Started](#get-started)
+  - [Key Features](#key-features)
+  - [Install and Run](#install-and-run)
+    - [Option 1: Install and Run](#option-1-install-and-run)
+    - [Option 2: Run without Installing](#option-2-run-without-installing)
+- [Model Configuration](#model-configuration)
+  - [List Configured Models](#list-configured-models)
+  - [Add a New Model](#add-a-new-model)
+  - [Remove a Model](#remove-a-model)
+  - [Set the Default Model](#set-the-default-model)
+- [How to Contribute to Helixent](#how-to-contribute-to-helixent)
+  - [Develop & Build from Source](#develop-build-from-source)
+    - [1. Install Dependencies](#1-install-dependencies)
+    - [2. Run in Development Mode](#2-run-in-development-mode)
+    - [3. Build the Binary](#3-build-the-binary)
+  - [Architecture](#architecture)
+    - [Layer 1: Foundation](#layer-1-foundation)
+    - [Layer 2: Agent Loop](#layer-2-agent-loop)
+    - [Layer 3: Coding Agent](#layer-3-coding-agent)
+  - [Community](#community)
+    - [How to Build a Coding Agent from Scratch](#how-to-build-a-coding-agent-from-scratch)
+  - [Middleware](#middleware)
+    - [Available Hooks](#available-hooks)
+  - [Why Bun?](#why-bun)
+- [Roadmap](#roadmap)
+
+---
+
+## Get Started
+
+### Key Features
+
+- **Model Foundation**
+  - A stable core `Model` abstraction plus provider-facing contracts, designed to keep model integrations clean and reusable.
+  - Multiple models are supported.
+- **Agent Loop (Middleware-Ready)**
+  - A reusable ReAct-style agent loop.
+  - First-class middleware support for extending behavior (state, tool orchestration, skills, etc.).
+  - See [Middleware](#middleware)
+- **Skills Support**
+  - The [standard agent skill](https://agentskills.io/) format is supported.
+  - Skills are discovered and loaded from:
+    - `~/.agents/skills`
+    - `~/.helixent/skills`
+    - `${current_project}/.agents/skills`
+    - `${current_project}/.helixent/skills`
+  - Duplicate skill names in different folders are allowed.
+
+- **Long-term memory**
+  - **Project root `AGENTS.md` support**: if an `AGENTS.md` exists at the repository root, it is automatically picked up as project guidance.
+- **Coding Agent**
+  - A coding-focused agent layer with practical tools (e.g. `bash`, `read_file`, `write_file`, `str_replace`, etc.) for developer workflows.
+  - Todo-list-based **plan mode** is supported.
+- **CLI**
+  - A CLI (with TUI support) for running agents interactively and iterating quickly.
+
+Helixent is now available on [`npm`](https://www.npmjs.com/package/helixent), so you can install globally and run, or choose to run via npx without installing:
+
+### Install and Run
+
+#### Option 1: Install and Run
+
+```bash
+npm install -g helixent@latest
+cd path/to/your/project
+helixent
+helixent --help
+```
+
+#### Option 2: Run without Installing
+
+```bash
+cd path/to/your/project
+npx helixent@latest
+npx helixent --help
+```
+
+## Model Configuration
+
+Helixent stores your CLI configuration in:
+
+- `~/.helixent/config.yaml`
+
+### List Configured Models
+
+```bash
+helixent config model list
+```
+
+### Add a New Model
+
+```bash
+helixent config model add
+```
+
+### Remove a Model
+
+```bash
+helixent config model remove <model_name>
+```
+
+Or select from the list of configured models:
+
+```bash
+helixent config model remove
+```
+
+### Set the Default Model
+
+```bash
+helixent config model set-default <model_name>
+```
+
+Or select from the list of configured models:
+
+```bash
+helixent config model set-default
+```
+
+---
+
+## How to Contribute to Helixent
+
+### Develop & Build from Source
 
 This section shows how to build Helixent from source and link the `helixent` CLI into your global PATH on **macOS**.
 
-### 1. Install dependencies
+#### 1. Install Dependencies
 
 ```bash
 bun install
 ```
 
-### 2. Build the binary
+All pushes and pull requests run `bun run check` in GitHub Actions. Local commits are also blocked by the pre-commit hook until the same check passes.
+
+#### 2. Run in Development Mode
+
+```bash
+bun run dev
+```
+
+#### 3. Build the Binary
 
 ```bash
 bun run build:bin
@@ -33,32 +168,7 @@ After the build completes, you should have:
 
 - `dist/bin/helixent`
 
-### 3. Symlink into your PATH (macOS)
-
-Pick the Homebrew prefix that matches your machine:
-
-- Apple Silicon (common): `/opt/homebrew/bin`
-- Intel (common): `/usr/local/bin`
-
-```bash
-# Apple Silicon (/opt/homebrew/bin)
-sudo ln -sf "$(pwd)/dist/bin/helixent" /opt/homebrew/bin/helixent
-
-# Intel (/usr/local/bin)
-sudo ln -sf "$(pwd)/dist/bin/helixent" /usr/local/bin/helixent
-```
-
-### 4. Run the CLI
-
-```bash
-helixent
-```
-
-Follow the prompts to complete the initial setup. Your config file will be automatically created at:
-
-- `~/.helixent/config.yaml`
-
-## Architecture
+### Architecture
 
 Helixent is organized into three layers, plus a `community` area for third-party integrations.
 
@@ -70,7 +180,7 @@ src/
 └── community/     # Third-party integrations (e.g. OpenAI)
 ```
 
-### Layer 1: Foundation
+#### Layer 1: Foundation
 
 Core primitives that everything else builds on:
 
@@ -78,7 +188,7 @@ Core primitives that everything else builds on:
 - **Message** — A single transcript type that flows end-to-end through the system — the single source of truth for the conversation.
 - **Tool** — Tool definitions and execution plumbing (the "actions" an agent can invoke).
 
-### Layer 2: Agent Loop
+#### Layer 2: Agent Loop
 
 A reusable **ReAct-style agent loop**:
 
@@ -89,7 +199,7 @@ A reusable **ReAct-style agent loop**:
 
 This layer depends only on Foundation and remains generic — not tied to any specific domain.
 
-### Layer 3: Coding Agent
+#### Layer 3: Coding Agent
 
 A domain-specific agent built on top of the generic agent loop, pre-configured with coding-oriented tools (`read_file`, `write_file`, `str_replace`, `bash`, etc.) and the skills middleware.
 
@@ -99,9 +209,9 @@ Optional, decoupled adapters that implement Foundation interfaces for specific p
 
 - `community/openai` — `OpenAIModelProvider` backed by the `openai` SDK, compatible with any OpenAI-compatible endpoint.
 
-### How to build a coding agent from scratch
+#### How to Build a Coding Agent from Scratch
 
-Here's a complete example that creates a coding agent using an OpenAI-compatible provider:
+Here is a complete example that creates a coding agent using an OpenAI-compatible provider:
 
 ```ts
 import { createCodingAgent } from "helixent/coding";
@@ -142,11 +252,11 @@ for await (const message of stream) {
 }
 ```
 
-## Middleware
+### Middleware
 
 Helixent provides a **middleware** system that lets you observe and mutate the agent's behavior at every stage of the loop. Middleware hooks are invoked sequentially in array order.
 
-### Available hooks
+#### Available Hooks
 
 | Hook | When it runs |
 |---|---|
@@ -161,21 +271,22 @@ Helixent provides a **middleware** system that lets you observe and mutate the a
 
 Each hook receives the current context and can return a partial update to merge back in, or `void` to leave it unchanged.
 
-## Why Bun?
+### Why Bun?
 
 Agent loops are inherently asynchronous — the model thinks, tools execute, results stream back, often in parallel. JavaScript/TypeScript has **native async/await** baked into the language and runtime, making concurrent orchestration straightforward without the callback gymnastics or `asyncio` boilerplate you'd face in Python.
 
-Among JS runtimes, we chose **Bun** specifically because:
+Among JS runtimes, we chose [**Bun**](https://bun.com/) specifically because:
 
-- **Performance** — Bun's HTTP client, file I/O, and startup time are significantly faster than Node.js, which matters when an agent loop is making dozens of tool calls per run.
-- **Standalone executables** — `bun build --compile` produces a single binary with no external dependencies. This makes it trivial to distribute a CLI agent that end-users can run without installing a runtime.
-- **Batteries included** — Built-in test runner, bundler, and TypeScript support out of the box — no extra toolchain to configure.
+- **Same runtime as Claude Code** — Bun powers Claude Code and a growing number of TypeScript-first tools. It's built for speed, and a compiled build is a single native executable.
+- **Performance** — HTTP, filesystem I/O, and cold starts are all noticeably faster than Node's, which adds up when an agent loop issues dozens of tool calls per run.
+- **Standalone executables** — `bun build --compile` outputs one self-contained binary. Shipping a CLI is as simple as handing users a single file—no separate runtime install.
+- **Batteries included** — Test runner, bundler, and TypeScript support ship with Bun, so there's no separate toolchain to wire up.
+
+---
 
 ## Roadmap
 
-- **TODO List** — Built-in task tracking so the agent can plan, break down, and track progress on multi-step work.
 - **Sub-agent** — Spawn child agents from within a run to handle subtasks independently, each with their own context and tool set.
 - **Agent Team** — Multi-agent collaboration where agents can coordinate, delegate, and share results to tackle complex problems together.
-- **CLI** — A command-line interface layer for running Helixent agents directly from the terminal with interactive I/O.
 - **Print Mode** — A Claude Code-style rendering mode that streams the agent's thinking, tool calls, and outputs in a rich, human-friendly terminal UI.
-- **Sessioning** - A local file based session store for storing the agent's context and history.
+- **Sessioning** — A local, file-based session store for the agent's context and history.

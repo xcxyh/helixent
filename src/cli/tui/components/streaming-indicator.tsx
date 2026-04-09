@@ -1,7 +1,5 @@
 import { Box, Text } from "ink";
-import Spinner from "ink-spinner";
 import { useMemo } from "react";
-import type { ComponentProps } from "react";
 
 import { currentTheme } from "../themes";
 
@@ -15,26 +13,18 @@ const LOADING_MESSAGES = [
   "Almost there...",
 ];
 
-const SPINNER_TYPES = ["dots", "dots2", "dots3", "dots13", "dots8Bit", "sand", "line", "pipe", "triangle"] as const;
-
 export function StreamingIndicator({ streaming, nextTodo }: { streaming: boolean; nextTodo?: string }) {
   if (!streaming) return null;
 
-  const spinnerType = useMemo(
-    () => SPINNER_TYPES[Math.floor(Math.random() * SPINNER_TYPES.length)] as ComponentProps<typeof Spinner>["type"],
-    [],
-  );
   const loadingMessage = useMemo(() => LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)], []);
 
   return (
     <Box flexDirection="column">
       <Box gap={1}>
-        <Text color={currentTheme.colors.primary}>
-          <Spinner type={spinnerType} />
-        </Text>
+        <Text color={currentTheme.colors.primary}>●</Text>
         <Text color={currentTheme.colors.primary}>{loadingMessage}</Text>
       </Box>
-      {nextTodo && <Text dimColor>Next: {nextTodo}</Text>}
+      {nextTodo && <Text color={currentTheme.colors.dimText}>Next: {nextTodo}</Text>}
     </Box>
   );
 }

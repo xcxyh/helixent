@@ -13,7 +13,7 @@ import { writeFileTool } from "../tools/write-file";
 export async function createCodingAgent({
   model,
   cwd = process.cwd(),
-  skillsDirs = [join(process.cwd(), "skills")],
+  skillsDirs = [join(process.cwd(), ".agents/skills")],
 }: {
   model: Model;
   cwd?: string;

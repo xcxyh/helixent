@@ -26,9 +26,44 @@ export function useAgentLoop() {
   const [messages, setMessages] = useState<NonSystemMessage[]>([]);
 
   const streamingRef = useRef(streaming);
+  const pendingMessagesRef = useRef<NonSystemMessage[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     streamingRef.current = streaming;
   }, [streaming]);
+
+  const flushPendingMessages = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+
+    if (pendingMessagesRef.current.length === 0) return;
+
+    const pending = pendingMessagesRef.current;
+    pendingMessagesRef.current = [];
+    setMessages((prev) => [...prev, ...pending]);
+  }, []);
+
+  const enqueueMessage = useCallback(
+    (message: NonSystemMessage) => {
+      pendingMessagesRef.current.push(message);
+      if (flushTimerRef.current) return;
+
+      flushTimerRef.current = setTimeout(() => {
+        flushPendingMessages();
+      }, 50);
+    },
+    [flushPendingMessages],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current);
+      }
+    };
+  }, []);
 
   const abort = useCallback(() => {
     agent.abort();
@@ -45,7 +80,9 @@ export function useAgentLoop() {
 
       if (text === "/clear") {
         agent.clearMessages();
+        flushPendingMessages();
         setMessages([]);
+        clearTerminal();
         return;
       }
 
@@ -57,16 +94,17 @@ export function useAgentLoop() {
 
         const stream = agent.stream(userMessage);
         for await (const message of stream) {
-          setMessages((prev) => [...prev, message]);
+          enqueueMessage(message);
         }
       } catch (error) {
         if (isAbortError(error)) return;
         throw error;
       } finally {
+        flushPendingMessages();
         setStreaming(false);
       }
     },
-    [agent],
+    [agent, enqueueMessage, flushPendingMessages],
   );
 
   return { agent, streaming, messages, onSubmit, abort };
@@ -78,4 +116,9 @@ function isAbortError(error: unknown): boolean {
   // OpenAI SDK throws APIUserAbortError
   if (error instanceof Error && error.constructor.name === "APIUserAbortError") return true;
   return false;
+}
+
+function clearTerminal() {
+  if (!process.stdout.isTTY) return;
+  process.stdout.write("\u001B[2J\u001B[3J\u001B[H");
 }

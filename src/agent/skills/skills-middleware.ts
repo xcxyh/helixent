@@ -1,21 +1,48 @@
-import type { Dirent } from "fs";
-import fs, { exists } from "fs/promises";
-import { join } from "path";
+import type { Dirent } from "node:fs";
+import fs, { exists } from "node:fs/promises";
+import os from "node:os";
+import { join } from "node:path";
 
 import type { AgentMiddleware } from "../agent-middleware";
 
 import { readSkillFrontMatter } from "./skill-reader";
 import type { SkillFrontmatter } from "./types";
 
-export function createSkillsMiddleware(
-  skillsDirs: string[] = [join(process.cwd(), "skills")],
-): AgentMiddleware {
+/**
+ * Loads skills from one or more `skillsDirs`.
+ *
+ * ## Discovery
+ * - Each `skillsDir` is expected to contain subfolders, each representing one skill.
+ * - A skill is discovered when `<skillsDir>/<folder>/SKILL.md` exists.
+ * - `~` is expanded to the current user's home directory.
+ *
+ * ## Duplicate handling (important)
+ * - **There is no "same-name skill overrides another" behavior.**
+ * - Dedupe is done by the *resolved SKILL.md file path* (full path string) only.
+ *   - If two different `skillsDirs` both contain a `my-skill/SKILL.md`, they are treated as
+ *     **two distinct skills** because their file paths differ.
+ *   - The only time a skill is deduped is when the exact same `SKILL.md` path is encountered
+ *     more than once (e.g. `skillsDirs` contains duplicate entries / aliases pointing to the
+ *     same directory).
+ *
+ * ## Ordering
+ * - Skills are appended in the order of `skillsDirs`, then the directory listing order of each
+ *   `skillsDir` (as returned by `readdir`).
+ */
+export function createSkillsMiddleware(skillsDirs: string[]): AgentMiddleware {
   return {
     beforeAgentRun: async () => {
       const skills: SkillFrontmatter[] = [];
       const seenSkillFiles = new Set<string>();
 
-      for (const skillsDir of skillsDirs) {
+      for (let skillsDir of skillsDirs) {
+        if (skillsDir.startsWith("~")) {
+          skillsDir = join(os.homedir(), skillsDir.slice(1));
+        }
+        if (!(await exists(skillsDir))) {
+          continue;
+        }
+
         let folders: Dirent[];
         try {
           folders = await fs.readdir(skillsDir, { withFileTypes: true });

@@ -67,3 +67,14 @@ export function saveConfig(config: HelixentConfig): void {
 export function ensureHelixentHomeDirectory(): void {
   mkdirSync(getHelixentHomePath(), { recursive: true });
 }
+
+/** Sets `HELIXENT_HOME` to the default path if not already set. */
+export function ensureHelixentHomeEnv(): void {
+  if (!process.env.HELIXENT_HOME?.trim()) {
+    const p = getDefaultHelixentHome();
+    process.env.HELIXENT_HOME = p;
+    if (typeof Bun !== "undefined") {
+      Bun.env.HELIXENT_HOME = p;
+    }
+  }
+}
