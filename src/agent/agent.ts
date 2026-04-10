@@ -9,6 +9,7 @@ import type {
   UserMessage,
 } from "@/foundation";
 
+import type { AgentEvent } from "./agent-event";
 import type { AgentMiddleware } from "./agent-middleware";
 import type { SkillFrontmatter } from "./skills/types";
 
@@ -135,7 +136,7 @@ export class Agent {
    * @param message - The message to send to the agent.
    * @returns The response from the agent. If the agent ran successfully, the response will be the final response from the agent. If the agent stopped running due to a maximum number of steps being reached, the response will be the last response from the agent.
    */
-  async *stream(message: UserMessage): AsyncGenerator<AssistantMessage | ToolMessage> {
+  async *stream(message: UserMessage): AsyncGenerator<AgentEvent> {
     if (this._streaming) {
       throw new Error("Agent is already streaming");
     }
@@ -148,9 +149,9 @@ export class Agent {
       for (let step = 1; step <= this.options.maxSteps; step++) {
         this._abortController.signal.throwIfAborted();
         await this._beforeAgentStep(step);
-        const assistantMessage = await this._think();
+        const assistantMessage = yield* this._think();
         await this._afterModel(assistantMessage);
-        yield assistantMessage;
+        yield { type: "message", message: assistantMessage };
 
         const toolUses = this._extractToolUses(assistantMessage);
         if (toolUses.length === 0) {
@@ -175,7 +176,7 @@ export class Agent {
     this._abortController?.abort();
   }
 
-  private async _think(): Promise<AssistantMessage> {
+  private async *_think(): AsyncGenerator<AgentEvent, AssistantMessage> {
     const modelContext: ModelContext = {
       prompt: this.prompt,
       messages: this.messages,
@@ -183,16 +184,41 @@ export class Agent {
       signal: this._abortController?.signal,
     };
     await this._beforeModel(modelContext);
-    const message = await this.model.invoke(modelContext);
-    this._appendMessage(message);
-    return message;
+
+    let latest: AssistantMessage | null = null;
+    for await (const snapshot of this.model.stream(modelContext)) {
+      latest = snapshot;
+      if (snapshot.streaming) {
+        yield this._deriveProgress(snapshot);
+      }
+    }
+    if (!latest) {
+      throw new Error("Model stream ended without producing a message");
+    }
+    // Defensive: ensure the final message is not flagged as streaming.
+    if (latest.streaming) {
+      delete latest.streaming;
+    }
+    this._appendMessage(latest);
+    return latest;
+  }
+
+  private _deriveProgress(snapshot: AssistantMessage): AgentEvent {
+    const toolUses = snapshot.content.filter(
+      (c): c is ToolUseContent => c.type === "tool_use",
+    );
+    if (toolUses.length === 0) {
+      return { type: "progress", subtype: "thinking" };
+    }
+    const last = toolUses[toolUses.length - 1]!;
+    return { type: "progress", subtype: "tool", name: last.name, input: last.input };
   }
 
   private _extractToolUses(message: AssistantMessage): ToolUseContent[] {
     return message.content.filter((content): content is ToolUseContent => content.type === "tool_use");
   }
 
-  private async *_act(toolUses: ToolUseContent[]): AsyncGenerator<ToolMessage> {
+  private async *_act(toolUses: ToolUseContent[]): AsyncGenerator<AgentEvent> {
     const signal = this._abortController?.signal;
     const pending = toolUses.map(async (toolUse, index) => {
       try {
@@ -240,7 +266,7 @@ export class Agent {
         ],
       };
       this._appendMessage(toolMessage);
-      yield toolMessage;
+      yield { type: "message", message: toolMessage };
     }
   }
 

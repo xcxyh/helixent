@@ -69,13 +69,22 @@ export class StreamAccumulator {
 
     // Sort by index to preserve order
     const sorted = [...this.toolCalls.entries()].sort((a, b) => a[0] - b[0]);
+    const isFinal = this.usage !== undefined;
     for (const [, tc] of sorted) {
       let input: Record<string, unknown> = {};
+      let parsed = false;
       try {
         input = JSON.parse(tc.arguments);
+        parsed = true;
       } catch {
-        // arguments JSON is still incomplete — yield empty input for now
+        // arguments JSON is still streaming — fall through
       }
+      // During streaming (non-final snapshots) we intentionally withhold
+      // a tool_use entry until its arguments parse successfully, so
+      // downstream consumers (e.g. agent progress events) never observe
+      // a half-formed payload. On the final snapshot we fall back to the
+      // best-effort empty object to preserve the previous contract.
+      if (!parsed && !isFinal) continue;
       content.push({ type: "tool_use", id: tc.id, name: tc.name, input });
     }
 

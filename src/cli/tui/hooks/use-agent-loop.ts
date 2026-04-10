@@ -99,8 +99,13 @@ export function AgentLoopProvider({ agent, children }: { agent: Agent; children:
         setMessages((prev) => [...prev, userMessage]);
 
         const stream = agent.stream(userMessage);
-        for await (const message of stream) {
-          enqueueMessage(message);
+        for await (const event of stream) {
+          if (event.type === "message") {
+            enqueueMessage(event.message);
+          }
+          // progress events intentionally ignored: the UI shows a generic
+          // "Thinking..." shimmer driven by the `streaming` boolean, and
+          // MessageHistory is the single source of truth for tool calls.
         }
       } catch (error) {
         if (isAbortError(error)) return;
