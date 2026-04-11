@@ -90,7 +90,7 @@ const AssistantMessageItem = memo(function AssistantMessageItem({
               return (
                 <Box key={i} columnGap={1}>
                   <Text color={currentTheme.colors.highlightedText}>⏺</Text>
-                  <Box flexDirection="column">
+                  <Box flexDirection="column" rowGap={0}>
                     <Markdown>{content.text}</Markdown>
                   </Box>
                 </Box>
@@ -163,7 +163,9 @@ const ToolUseContentItem = memo(function ToolUseContentItem({
       return (
         <Box flexDirection="column">
           <Text>{content.input.description as string}</Text>
-          <Text color={currentTheme.colors.dimText}>└─ {(content.input.from as string) + " -> " + (content.input.to as string)}</Text>
+          <Text color={currentTheme.colors.dimText}>
+            └─ {(content.input.from as string) + " -> " + (content.input.to as string)}
+          </Text>
         </Box>
       );
     case "apply_patch":
@@ -283,7 +285,8 @@ function summarizeStructuredToolResult(content: string) {
     }
 
     if (parsed.ok === false) {
-      const message = typeof parsed.summary === "string" ? parsed.summary : typeof parsed.error === "string" ? parsed.error : content;
+      const message =
+        typeof parsed.summary === "string" ? parsed.summary : typeof parsed.error === "string" ? parsed.error : content;
       const code = typeof parsed.code === "string" ? parsed.code : null;
       return code ? `Error [${code}]: ${message}` : `Error: ${message}`;
     }

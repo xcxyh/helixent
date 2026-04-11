@@ -52,11 +52,7 @@ export function App({ commands }: { commands: SlashCommand[] }) {
         {approvalRequest ? null : <StreamingIndicator streaming={streaming} nextTodo={nextTodo} />}
         {!hideTodos && <TodoPanel todos={latestTodos} />}
         {approvalRequest ? (
-          <ApprovalPrompt
-            toolUse={approvalRequest.toolUse}
-            onApprove={() => respondToApproval(true)}
-            onDeny={() => respondToApproval(false)}
-          />
+          <ApprovalPrompt toolUse={approvalRequest.toolUse} onDecision={respondToApproval} />
         ) : (
           <InputBox commands={commands} onSubmit={onSubmit} onAbort={abort} />
         )}

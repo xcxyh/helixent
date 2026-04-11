@@ -1,11 +1,15 @@
 import { join } from "path";
 
 import { Agent } from "@/agent";
-import { createApprovalMiddleware } from "@/agent/approval";
 import { createSkillsMiddleware } from "@/agent/skills/skills-middleware";
 import { createTodoSystem } from "@/agent/todos/todos";
 import type { Model, NonSystemMessage, ToolUseContent } from "@/foundation";
 
+import {
+  type ApprovalDecision,
+  CODING_TOOLS_REQUIRING_APPROVAL,
+  createCodingApprovalMiddleware,
+} from "../permissions";
 import { applyPatchTool } from "../tools/apply-patch";
 import { bashTool } from "../tools/bash";
 import { fileInfoTool } from "../tools/file-info";
@@ -28,7 +32,7 @@ export async function createCodingAgent({
   cwd?: string;
   skillsDirs?: string[];
   // eslint-disable-next-line no-unused-vars
-  askUser?: (toolUse: ToolUseContent) => Promise<boolean>;
+  askUser?: (toolUse: ToolUseContent) => Promise<ApprovalDecision>;
 }) {
   const agentsFile = Bun.file(`${cwd}/AGENTS.md`);
   const messages: NonSystemMessage[] = [];
@@ -49,8 +53,9 @@ export async function createCodingAgent({
   const middlewares = [createSkillsMiddleware(skillsDirs), todoMiddleware];
   if (askUser) {
     middlewares.push(
-      createApprovalMiddleware({
-        requiresApproval: ["bash", "write_file", "str_replace", "apply_patch", "mkdir", "move_path"],
+      createCodingApprovalMiddleware({
+        cwd,
+        requiresApproval: CODING_TOOLS_REQUIRING_APPROVAL,
         askUser,
       }),
     );
