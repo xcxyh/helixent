@@ -12,6 +12,11 @@ import {
   createCodingApprovalMiddleware,
 } from "../permissions";
 import { applyPatchTool } from "../tools/apply-patch";
+import {
+  createAskUserQuestionTool,
+  type AskUserQuestionParameters,
+  type AskUserQuestionResult,
+} from "../tools/ask-user-question";
 import { bashTool } from "../tools/bash";
 import { fileInfoTool } from "../tools/file-info";
 import { globSearchTool } from "../tools/glob-search";
@@ -28,6 +33,7 @@ export async function createCodingAgent({
   cwd = process.cwd(),
   skillsDirs = [join(process.cwd(), ".agents/skills")],
   askUser,
+  askUserQuestion,
   approvalPersistence,
 }: {
   model: Model;
@@ -35,6 +41,8 @@ export async function createCodingAgent({
   skillsDirs?: string[];
   // eslint-disable-next-line no-unused-vars
   askUser?: (toolUse: ToolUseContent) => Promise<ApprovalDecision>;
+  // eslint-disable-next-line no-unused-vars
+  askUserQuestion?: (params: AskUserQuestionParameters) => Promise<AskUserQuestionResult>;
   approvalPersistence?: ApprovalPersistence;
 }) {
   const agentsFile = Bun.file(`${cwd}/AGENTS.md`);
@@ -52,6 +60,8 @@ export async function createCodingAgent({
     });
   }
   const { tool: todoTool, middleware: todoMiddleware } = createTodoSystem();
+
+  const askUserQuestionTool = askUserQuestion ? createAskUserQuestionTool(askUserQuestion) : null;
 
   const middlewares = [createSkillsMiddleware(skillsDirs), todoMiddleware];
   if (askUser) {
@@ -92,6 +102,7 @@ Use the given tools and skills to perform parallel/sequential operations and sol
       strReplaceTool,
       applyPatchTool,
       todoTool,
+      ...(askUserQuestionTool ? [askUserQuestionTool] : []),
     ],
     middlewares,
   });

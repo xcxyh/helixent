@@ -5,6 +5,7 @@ import type { NonSystemMessage } from "@/foundation";
 
 import type { SlashCommand } from "./command-registry";
 import { ApprovalPrompt } from "./components/approval-prompt";
+import { AskUserQuestionPrompt } from "./components/ask-user-question-prompt";
 import { Footer } from "./components/footer";
 import { Header } from "./components/header";
 import { InputBox } from "./components/input-box";
@@ -13,6 +14,7 @@ import { StreamingIndicator } from "./components/streaming-indicator";
 import { TodoPanel } from "./components/todo-panel";
 import { useAgentLoop } from "./hooks/use-agent-loop";
 import { useApprovalManager } from "./hooks/use-approval-manager";
+import { useAskUserQuestionManager } from "./hooks/use-ask-user-question-manager";
 import { messageToPlainText } from "./message-text";
 import { buildTodoViewState, getNextTodo } from "./todo-view";
 
@@ -29,6 +31,7 @@ export function App({
 }) {
   const { streaming, messages, onSubmit, abort } = useAgentLoop();
   const { approvalRequest, respondToApproval } = useApprovalManager();
+  const { askUserQuestionRequest, respondWithAnswers } = useAskUserQuestionManager();
   const { latestTodos, todoSnapshots, toolUses } = useMemo(() => buildTodoViewState(messages), [messages]);
   const nextTodo = getNextTodo(latestTodos)?.content;
   const hideTodos = !streaming && allDone(latestTodos);
@@ -55,13 +58,20 @@ export function App({
             toolUses={toolUses}
           />
         )}
-        {approvalRequest ? null : <StreamingIndicator streaming={streaming} nextTodo={nextTodo} />}
+        {approvalRequest || askUserQuestionRequest ? null : (
+          <StreamingIndicator streaming={streaming} nextTodo={nextTodo} />
+        )}
         {!hideTodos && <TodoPanel todos={latestTodos} />}
         {approvalRequest ? (
           <ApprovalPrompt
             toolUse={approvalRequest.toolUse}
             supportProjectWideAllow={supportProjectWideAllow}
             onDecision={respondToApproval}
+          />
+        ) : askUserQuestionRequest ? (
+          <AskUserQuestionPrompt
+            questions={askUserQuestionRequest.params.questions}
+            onSubmit={respondWithAnswers}
           />
         ) : (
           <InputBox commands={commands} onSubmit={onSubmit} onAbort={abort} />
